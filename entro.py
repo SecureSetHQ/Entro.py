@@ -16,12 +16,15 @@ class EntropyAnalyzer:
         '''Initializes the dictionary with passed JSON file'''
         f = open(dictfile, 'r')
         self.dict = json.load(f)
+        self.memoize = dict()
+
         self.filters = dict()
         self.filters['shorter_than_10'] = lambda x: len(x) < 10
         self.filters['shorter_than_8'] = lambda x: len(x) < 8
         self.filters['longer_than_3'] = lambda x: len(x) > 3
         self.filters['alpha_only'] = lambda x: x.isalpha()
         self.filters['ascii_only'] = lambda x: (ord(c) < 128 for c in x)
+        
         f.close()
 
     def get_pos(self, word):
@@ -41,6 +44,7 @@ class EntropyAnalyzer:
                 fdict[key] = val
         if cull:
             self.dict = fdict
+            self.memoize = dict()
         else:
             return fdict
 
@@ -89,14 +93,13 @@ class EntropyAnalyzer:
         '''Generates a random passphrase from a given mask'''
         mask = self.parse_pos_mask(pos_mask)
         pw = ""
-        memoize = dict()
         for pos in mask:
             if pos == 'any':
                 pw += random.choice(self.dict.keys())
             else:
-                if pos not in memoize.keys():
-                    memoize[pos] = self.get_all_pos(pos)
-                pw += random.choice(memoize[pos])
+                if pos not in self.memoize.keys():
+                    self.memoize[pos] = self.get_all_pos(pos)
+                pw += random.choice(self.memoize[pos])
         return pw
 
     def rand_crack(self, sha1sum, pos_mask):

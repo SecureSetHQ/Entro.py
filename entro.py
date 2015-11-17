@@ -7,8 +7,10 @@
 import json
 import math
 import string
+import itertools
 import hashlib
 import random
+import time
 
 class EntropyAnalyzer:
     '''Class to hold the functions needed to analyze entropy of given passphrase choices'''
@@ -23,7 +25,7 @@ class EntropyAnalyzer:
         self.filters['shorter_than_8'] = lambda x: len(x) < 8
         self.filters['longer_than_3'] = lambda x: len(x) > 3
         self.filters['alpha_only'] = lambda x: x.isalpha()
-        self.filters['ascii_only'] = lambda x: (ord(c) < 128 for c in x)
+        self.filters['ascii_only'] = lambda x: all(ord(c) < 128 for c in x)
         
         f.close()
 
@@ -70,7 +72,7 @@ class EntropyAnalyzer:
         hours = possibilities / 70000000.0 / (60 * 60)
         days = hours / 24.0
         print "Computed %d or approximately 2^%.4f bits of entropy\n" % (possibilities, self.poss_to_bits(possibilities))
-        print "Time to crack: %.2f hrs (%.2f days) @ 70 M h/s" % (hours, days)
+        print "Time to crack: %.2f hrs (%.2f days) @ 70 M h/s\n" % (hours, days)
         return possibilities
 
     def poss_to_bits(self, poss):
@@ -85,7 +87,7 @@ class EntropyAnalyzer:
     def get_all_pos(self, pos):
         poses = []
         for w in self.dict:
-            if pos in self.get_pos(w):
+            if pos == "any" or pos in self.get_pos(w):
                 poses.append(w)
         return poses
 
@@ -102,11 +104,30 @@ class EntropyAnalyzer:
                 pw += random.choice(self.memoize[pos])
         return pw
 
-    def rand_crack(self, sha1sum, pos_mask):
+    def rand_crack(self, sha1sum, pos_mask, timef = True):
         '''Attempts to randomly find a collision with the passed hash'''
+        if timef:
+            start = time.time()
         guess = self.gen_pass(pos_mask)
         while hashlib.sha1(guess).hexdigest() != sha1sum:
             guess = self.gen_pass(pos_mask)
+        if timef:
+            print "Took %d seconds to crack\n" % (time.time() - start)
         return guess
 
-        
+    def iter_crack(self, sha1sum, pos_mask, timef = True):
+        '''Attempts to crack a sha1sum via iterating through dictionary'''
+        if timef:
+            start = time.time()
+        mask = self.parse_pos_mask(pos_mask)
+        lol = []
+        for pos in mask:
+            if pos not in self.memoize.keys():
+                self.memoize[pos] = self.get_all_pos(pos)
+            lol.append(self.memoize[pos])
+        for perm in itertools.product(*lol):
+            teststr = ''.join(map(str, perm))
+            if sha1sum == hashlib.sha1(teststr).hexdigest():
+                if timef:
+                    print "Took %d seconds to crack\n" % (time.time() - start)
+                return teststr

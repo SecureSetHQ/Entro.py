@@ -86,6 +86,12 @@ class EntropyBase(object):
             print "Took %d seconds to crack\n" % (time.time() - start)
         return guess
 
+    def load_hashes(self, filename):
+        '''Loads in a JSON list of hashes to crack'''
+        with open(filename, 'r') as f:
+            hashes = json.load(f)
+        return hashes
+
 class EntropyAnalyzer(EntropyBase):
     '''Class to hold the functions needed to analyze entropy of given passphrase choices'''
     def __init__(self, dictfile):

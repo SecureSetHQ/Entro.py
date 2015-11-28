@@ -152,3 +152,10 @@ class PasswordPattern(EntropyBase):
         self.memoize['letter'] = list(string.ascii_letters)
         self.memoize['any'] = self.memoize['punc'] + self.memoize['digit'] + self.memoize['letter']
 
+    def calculate_security(self, mask):
+        '''Calulates the number of possibilities to guess to find the passphrase matching the part-of-speech mask'''
+        mask = self.parse_mask(mask)
+        possibilities = 1
+        for e in mask:
+            possibilities *= len(self.memoize[e])
+        return super(PasswordPattern, self).calculate_security(possibilities)

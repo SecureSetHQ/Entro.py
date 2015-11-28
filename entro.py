@@ -35,22 +35,35 @@ class EntropyBase(object):
         print "Time to crack: %.2f hrs (%.2f days) @ 70 M h/s\n" % (hours, days)
         return possibilities
 
-    def iter_crack(self, sha1sum, pos_mask, timef = True):
+    def iter_crack(self, sha1sum, pos_mask, timeout, timef = True):
         '''Attempts to crack a sha1sum via iterating through dictionary'''
-        if timef:
+        try:
             start = time.time()
-        mask = self.parse_mask(pos_mask)
-        lol = []
-        for pos in mask:
-            if pos not in self.memoize.keys():
-                self.memoize[pos] = self.get_all_pos(pos)
-            lol.append(self.memoize[pos])
-        for perm in itertools.product(*lol):
-            teststr = ''.join(map(str, perm))
-            if sha1sum == hashlib.sha1(teststr).hexdigest():
-                if timef:
-                    print "Took %d seconds to crack\n" % (time.time() - start)
-                return teststr 
+            crack_count = 0
+            mask = self.parse_mask(pos_mask)
+            lol = []
+            for pos in mask:
+                if pos not in self.memoize.keys():
+                    self.memoize[pos] = self.get_all_pos(pos)
+                lol.append(self.memoize[pos])
+            for perm in itertools.product(*lol):
+                if timeout != 0 and (time.time() - start) >= timeout:
+                    return crack_count
+                teststr = ''.join(map(str, perm))
+                if type(sha1sum) is list:
+                    if hashlib.sha1(teststr).hexdigest() in sha1sum:
+                        crack_count += 1
+                else:
+                    if sha1sum == hashlib.sha1(teststr).hexdigest():
+                        crack_count += 1
+                        if timef:
+                            print "Took %d seconds to crack\n" % (time.time() - start)
+                        return teststr
+            return crack_count
+        except KeyboardInterrupt:
+            if timef:
+                print "Cracked %d passwords in %d seconds\n" % (crack_count, (time.time() - start))
+            return crack_count
 
     def gen_pass(self, mask):
         '''Generates a random passphrase from a given mask'''

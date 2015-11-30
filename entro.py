@@ -50,7 +50,7 @@ class EntropyBase(object):
                 if timeout != 0 and (time.time() - start) >= timeout:
                     return crack_count
                 teststr = ''.join(map(str, perm))
-                if type(sha1sum) is list:
+                if type(sha1sum) is set:
                     if hashlib.sha1(teststr).hexdigest() in sha1sum:
                         crack_count += 1
                 else:
@@ -75,22 +75,22 @@ class EntropyBase(object):
             pw += random.choice(self.memoize[pos])
         return pw
 
-    def rand_crack(self, sha1sum, mask, timef = True):
-        '''Attempts to randomly find a collision with the passed hash'''
-        if timef:
-            start = time.time()
-        guess = self.gen_pass(mask)
-        while hashlib.sha1(guess).hexdigest() != sha1sum:
-            guess = self.gen_pass(mask)
-        if timef:
-            print "Took %d seconds to crack\n" % (time.time() - start)
-        return guess
+#    def rand_crack(self, sha1sum, mask, timef = True):
+#        '''Attempts to randomly find a collision with the passed hash'''
+#        if timef:
+#            start = time.time()
+#        guess = self.gen_pass(mask)
+#        while hashlib.sha1(guess).hexdigest() != sha1sum:
+#            guess = self.gen_pass(mask)
+#        if timef:
+#            print "Took %d seconds to crack\n" % (time.time() - start)
+#        return guess
 
     def load_hashes(self, filename):
         '''Loads in a JSON list of hashes to crack'''
         with open(filename, 'r') as f:
             hashes = json.load(f)
-        return hashes
+        return set(hashes)
 
 class EntropyAnalyzer(EntropyBase):
     '''Class to hold the functions needed to analyze entropy of given passphrase choices'''
